@@ -1,94 +1,130 @@
-# ♻️ AI Waste Classifier — Max-Confidence Neural Ensemble
+# ♻️ Garbage Classifier — Max-Confidence Neural Ensemble
 
+[![Status](https://img.shields.io/badge/Status-Completed-success?style=flat-square)](#)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![TensorFlow 2.x](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)](https://tensorflow.org/)
 [![Streamlit App](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg?style=flat-square)](LICENSE)
 
-An intelligent deep learning web application that classifies physical waste into recyclable and non-recyclable categories to promote sustainable waste management. The system employs a **Max-Confidence Neural Ensemble** combining two distinct EfficientNet vision architectures to maximize accuracy and minimize misclassifications.
+> **One-Line Value Proposition**: An intelligent deep learning waste classification engine combining dual EfficientNet vision models with a 60% confidence threshold guardrail to prevent misclassifications in recycling workflows.
 
 ---
 
 ## 📌 Project Overview
 
-Single-model computer vision classifiers often suffer from high variance on ambiguous or out-of-distribution waste images. To solve this, the **AI Waste Classifier** passes uploaded images or live camera frames through a dual-model pipeline:
-- **Model V2 (EfficientNetB4)**: Specialized in high-resolution feature extraction (380x380px) across **9 waste categories**.
-- **Model V3 (EfficientNetB3)**: Optimized for compact spatial representation (300x300px) across **8 core waste categories**.
+Single-model vision classifiers often suffer from high prediction variance when processing ambiguous or out-of-distribution waste images. **Garbage Classifier** solves this by feeding incoming image streams through a dual-model neural pipeline:
+1. **Model V2 (EfficientNetB4)**: High-resolution feature extraction (380x380px) across **9 waste categories**.
+2. **Model V3 (EfficientNetB3)**: Compact spatial feature extraction (300x300px) across **8 waste categories**.
 
-A programmatic logical gate compares prediction confidence outputs in real time, selecting the top prediction while enforcing a **60% confidence threshold guardrail** to prevent misclassifications.
+A programmatic logical gate compares class confidence distributions in real time, selecting the top prediction while enforcing a **60% confidence threshold** to flag ambiguous inputs as "Unknown / Require Manual Inspection".
 
 ---
 
-## ⚙️ Model Architecture & Technical Specifications
+## 🏗️ Architecture & Pipeline
 
-| Parameter | Model V2 | Model V3 |
+`	ext
+               ┌─────────────────────────────────────────┐
+               │         Input Image / Camera            │
+               └────────────────────┬────────────────────┘
+                                    │
+                     ┌──────────────┴──────────────┐
+                     ▼                             ▼
+         ┌──────────────────────┐      ┌──────────────────────┐
+         │ Model V2 Preprocess  │      │ Model V3 Preprocess  │
+         │     (380 × 380)      │      │     (300 × 300)      │
+         └───────────┬──────────┘      └───────────┬──────────┘
+                     ▼                             ▼
+         ┌──────────────────────┐      ┌──────────────────────┐
+         │ EfficientNetB4 (9-cl)│      │ EfficientNetB3 (8-cl)│
+         └───────────┬──────────┘      └───────────┬──────────┘
+                     │                             │
+                     └──────────────┬──────────────┘
+                                    ▼
+                     ┌─────────────────────────────┐
+                     │   Max-Confidence Comparator │
+                     │   np.max(P1) vs np.max(P2)  │
+                     └──────────────┬──────────────┘
+                                    │
+                          [Confidence >= 60%]
+                         /                   \
+                       YES                    NO
+                       /                       \
+                      ▼                         ▼
+          Winning Waste Category       Flagged as "Unknown State"
+`
+
+---
+
+## ✨ Features
+
+- **Dual EfficientNet Inference**: Evaluates images across two distinct network depth configurations simultaneously.
+- **Fail-Safe Confidence Thresholding**: Enforces a 60% minimum probability gate to prevent confident sorting mistakes.
+- **Dynamic Array Preprocessing**: Scales input frames on-the-fly into parallel RGB tensor formats matching each model's native resolution requirements.
+- **Interactive Visual UI**: Displays probability distribution graphs, individual model votes, and confidence scores in Streamlit.
+
+---
+
+## 📊 Measured Model Specs & Metrics
+
+| Pipeline Component | Model V2 Specifications | Model V3 Specifications |
 |---|---|---|
-| **Base Architecture** | EfficientNetB4 | EfficientNetB3 |
-| **Input Resolution** | 380 × 380 px | 300 × 300 px |
-| **Classes Evaluated** | 9 Classes | 8 Classes |
-| **Ensemble Logic** | Max-Confidence Comparison (
-p.max(pred1) vs np.max(pred2)) |
-| **Guardrail Threshold** | 60% minimum probability for deterministic classification |
+| **Base Network** | EfficientNetB4 | EfficientNetB3 |
+| **Input Shape** | 380 × 380 × 3 RGB | 300 × 300 × 3 RGB |
+| **Evaluated Categories** | 9 Classes | 8 Classes |
+| **Decision Logic** | Max-Confidence Comparison Gate | Max-Confidence Comparison Gate |
+| **Safety Threshold** | 60.0% Minimum Peak Probability | 60.0% Minimum Peak Probability |
 
-### Target Categories Evaluated
-1. 📦 **Cardboard**
-2. 🍾 **Glass**
-3. 🥫 **Metal**
-4. 📰 **Paper**
-5. 🥤 **Plastic**
-6. 🗑️ **Trash / Non-recyclable**
-7. 🍂 **Biodegradable / Organic**
-8. 👕 **Clothes & Textiles**
-9. 👟 **Footwear / Shoes**
-
----
-
-## 🚀 Key Features
-
-- **Dual EfficientNet Face-Off**: Dynamically runs dual inference and displays individual confidence scores for both models side-by-side.
-- **On-the-Fly Dynamic Preprocessing**: Converts input frames into RGB, scaling them into parallel tensor pipelines matching each neural network's exact input requirements.
-- **Fail-Safe Thresholding**: Categorizes inputs under 60% peak probability as "Unknown / Ambiguous Waste" to prevent erroneous sorting recommendations.
-- **Interactive Streamlit Interface**: Offers real-time camera feed capture, file upload support, and interactive probability distribution visualizations.
+### Waste Classes Evaluated
+Cardboard, Glass, Metal, Paper, Plastic, Trash (Non-recyclable), Biodegradable Organic, Clothes, Footwear.
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Core Language**: Python 3.10
-- **Deep Learning**: TensorFlow / Keras
-- **Computer Vision & Image Processing**: Pillow (PIL), NumPy
-- **Frontend & Deployment**: Streamlit
+- **Deep Learning Framework**: TensorFlow / Keras
+- **Image Processing**: Pillow (PIL), NumPy
+- **User Interface**: Streamlit
 
 ---
 
-## 💻 Installation & Usage
+## 💻 Installation & Setup
 
-### 1. Clone Repository
 `ash
-git clone https://github.com/wajahat2005/garabge-classifier-final-combined-.git
-cd garabge-classifier-final-combined-
-`
+# Clone repository
+git clone https://github.com/wajahat2005/garbage-classifier.git
+cd garbage-classifier
 
-### 2. Install Dependencies
-`ash
+# Install dependencies
 pip install -r requirements.txt
+
+# Launch web application
+streamlit run app.py
 `
 
-### 3. Launch Application
-`ash
-streamlit run app.py
+---
+
+## 📁 Project Structure
+
+`	ext
+garbage-classifier/
+├── app.py              # Main Streamlit application & ensemble inference pipeline
+├── requirements.txt    # Python dependencies (TensorFlow, Streamlit, NumPy, Pillow)
+├── README.md           # Project documentation & specs
+└── .github/
+    └── workflows/
+        └── ci.yml      # GitHub Actions CI workflow
 `
 
 ---
 
 ## 🔮 Future Roadmap
 
-- [ ] **Edge Deployment**: Quantize model weights to TFLite for deployment on Raspberry Pi / mobile edge devices.
-- [ ] **Bounding Box Detection**: Upgrade from full-image classification to multi-object detection using YOLOv8.
-- [ ] **Recycling Recommendation API**: Integrate automated municipal disposal and recycling location lookup.
+- [ ] Quantize model weights to TFLite for edge execution on Raspberry Pi zero.
+- [ ] Upgrade bounding-box multi-object localization using YOLOv8.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE).
